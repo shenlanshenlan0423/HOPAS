@@ -18,8 +18,7 @@ def KNN_approx_behavior_policy_for_test_data(transition_dict_for_train, transiti
     test_states = Physiological_distance_kernel(test_states)
 
     # Clinicians typically make decisions based on their experience treating similar patients
-    # Intuitively, states that are physiologically similar should
-    # have similar treatment (behaviour policy) distributions.
+    # Intuitively, states that are physiologically similar should have similar treatment (behaviour policy) distributions.
     neigh = NearestNeighbors(n_neighbors=n_neighbors)
     neigh.fit(train_states)
     distances, indices = neigh.kneighbors(test_states)
@@ -47,7 +46,7 @@ def FQI_for_Q_estimate(transition_dict_for_train, args):
         for _ in range(args.max_iteration):
             o = rewards + args.gamma * (max_q_values * reward_mask)
             sample_idx = np.random.choice(range(i.shape[0]), size=50000, replace=False)
-            model.fit(X=i[sample_idx], y=o[sample_idx])  # Sampling for Acceleration
+            model.fit(X=i[sample_idx], y=o[sample_idx])  # Sampling for Training Acceleration
             q_values_hat = model.predict(i_t1).reshape(next_states.shape[0], action_dim)  # 估计next states在所有可选动作下的Q values
             mse_loss = np.mean((max_q_values - q_values_hat.max(axis=1)) ** 2)
             max_q_values = q_values_hat.max(axis=1)
@@ -103,7 +102,7 @@ def run_evaluate(Agent_stochastic_policy, transition_dict, behavior_policy, Q_es
         print('Save res for action matrix.')
 
     Agent_deterministic_policy = np.eye(action_dim)[Agent_stochastic_policy.argmax(1)]
-    action_idx = Clin_deterministic_policy.argmax(1)  # Note: eval policy和behavior policy选择数据中某个action的概率
+    action_idx = Clin_deterministic_policy.argmax(1)
     policys_and_res = {
         'Agent Stochastic': [], 'Agent Deterministic': [],
         'Clin Stochastic': [], 'Clin Deterministic': [],
@@ -143,7 +142,7 @@ def evaluate(policys_and_res, model, rewards, dones, gamma):
     else:
         WIS, WDR = off_policy_evaluation(policys_and_res[model],
                                          policys_and_res['Data {} action'.format(eval_policy_type)],
-                                         policys_and_res['FQI Q_s_a'],  # BUG: why
+                                         policys_and_res['FQI Q_s_a'],
                                          policys_and_res['Agent V_s'],
                                          rewards, dones, gamma)
         res_dict = {
@@ -194,8 +193,7 @@ def off_policy_evaluation(pi_rls, pi_clins, Q_s_as, V_ss, rewards, dones, gamma)
         cumulative_reward = 0
         for t in range(T):
             if pi_clin[t] == 0:
-                # Note: Assumption in Page 5 of <Behaviour Policy Estimation in
-                #  Off-Policy Policy Evaluation:  Calibration Matters>: if pi_clin[t] == 0 then pi_rl[t] == 0
+                # Note: Assumption in Page 5 of <Behaviour Policy Estimation in Off-Policy Policy Evaluation:  Calibration Matters>: if pi_clin[t] == 0 then pi_rl[t] == 0
                 rho *= 0
             else:
                 rho *= (pi_rl[t] / pi_clin[t])

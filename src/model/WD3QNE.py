@@ -40,18 +40,15 @@ class WD3QNE(nn.Module):
         argmax_action = actions.argmax(dim=1, keepdim=True)
         q_values = self.q_net(states).gather(dim=1, index=argmax_action)
 
-        # Note: DoubleDQN: 利用两套独立训练的神经网络，以缓解Q值过高估计的问
         max_action = self.q_net(next_states).argmax(dim=1, keepdim=True)
         target_q = self.target_q_net(next_states)
         max_next_q_values_1 = target_q.gather(dim=1, index=max_action)
         phi = max_next_q_values_1.squeeze(1) / target_q.sum(1)
-        # Note: DuelingDQN
+
         max_next_q_values_2 = target_q.max(dim=1, keepdim=True)[0]
         sigma = max_next_q_values_2.squeeze(1) / target_q.sum(1)
         p = phi / (phi + sigma)
         max_next_q_values = p.unsqueeze(1) * max_next_q_values_1 + (1 - p).unsqueeze(1) * max_next_q_values_2
-        # BUG: human-in-loop 在SIT这个context中, SOFA<5的患者采用医生的heparin决策这个结论不一定成立
-        # max_next_q_values[human_expert_decide_rows] = q_values[human_expert_decide_rows]
         max_next_q_values[no_heparin_index] = self.q_net(states).gather(dim=1, index=torch.zeros_like(argmax_action))[no_heparin_index]
 
         q_targets = rewards + self.gamma * max_next_q_values.squeeze(1) * (torch.ones_like(dones) - dones)

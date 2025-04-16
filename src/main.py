@@ -31,8 +31,6 @@ class ExperimentManager:
                 val_set = prepare_tuples(torch.load(data_path + '/val_set_tuples'))
                 train_loader = DataLoader(dataset=train_set, batch_size=args.batch_size, shuffle=True)
                 val_loader = DataLoader(dataset=val_set, batch_size=args.batch_size, shuffle=True)
-            test_set = prepare_tuples(torch.load(data_path + '/test_set_tuples'))
-            test_loader = DataLoader(dataset=test_set, batch_size=args.batch_size, shuffle=False)
 
             if not load_model:
                 enc = AttentionEncoder(args.static_dim, args.temporal_dim, args.d, args.embedding_dim,
@@ -88,17 +86,12 @@ class ExperimentManager:
             cluster_models_eval_res[fold_label] = cluster_evaluate(model=kmeans, X=patient_level_representations)
             if fold_label == 'fold-1':
                 save_pickle((patient_level_representations, kmeans), RESULT_DIR + 'res_for_plot_Stratification.pkl')
-                # get_StratificationRes(patient_level_representations, kmeans)
 
         if not load_model:
             save_pickle(trained_cluster_models, MODELS_DIR + '/Cluster_models.pkl')
             save_pickle(cluster_models_eval_res, RESULT_DIR + '/Cluster_models_eval_res.pkl')
 
     def run_rl_data_prepare(self):
-        """
-        1. 基于每个sepsis患者的簇label，根据其患者index在df_train.csv中检索相应的原始time-series型数据；
-        2. 将拼接后的dataframe数据调用get_tensor_data方法处理成tuple格式；
-        """
         trained_cluster_models = load_pickle(MODELS_DIR + '/Cluster_models.pkl')
         for fold_idx in range(folds):
             fold_label = 'fold-{}'.format(fold_idx + 1)
@@ -121,10 +114,6 @@ class ExperimentManager:
                 torch.save((states, acts, lengths, outcomes), os.path.join(data_path, 'class-{}-tuples'.format(subclass)))
 
     def run_policy_learning(self, Epochs):
-        """
-        1. 对于每个group的train tuple，训练offline RL agent, 构建heterogeneous agent pool
-        2. 评估的时候要先调用kmeans获得val set和test set中患者所属簇，然后使用dynamic soft fusion进行决策；(SABPF中的代码可以复用)
-        """
         trained_agents = {}
         args.Epochs = Epochs
         for fold_idx in range(folds):
@@ -133,12 +122,12 @@ class ExperimentManager:
             print('\n----------------------------{}----------------------------\n'.format(fold_label))
             data_path = self.dataset_path + '/{}/'.format(fold_label)
             for subclass in range(args.n_clusters):
-                # sub_train_tuple = torch.load(os.path.join(data_path, 'class-{}-tuples'.format(subclass)))
+                sub_train_tuple = torch.load(os.path.join(data_path, 'class-{}-tuples'.format(subclass)))
                 agent = DuelingDoubleDQN(state_dim=state_dim, action_dim=args.action_dim,
                                          hidden_dim=args.Hidden_size, gamma=args.gamma)
-                # sub_train_replay_buffer = prepare_replay_buffer(tensor_tuple=sub_train_tuple, args=args)
+                sub_train_replay_buffer = prepare_replay_buffer(tensor_tuple=sub_train_tuple, args=args)
                 # torch.save(sub_train_replay_buffer, data_path + 'class-{}-train_replay_buffer'.format(subclass))
-                sub_train_replay_buffer = torch.load(data_path + 'class-{}-train_replay_buffer'.format(subclass))  # TODO
+                # sub_train_replay_buffer = torch.load(data_path + 'class-{}-train_replay_buffer'.format(subclass))
                 agent, loss_dict = training_DQN(agent, sub_train_replay_buffer, args)
                 trained_fold_agents['class-{}'.format(subclass)] = agent
             trained_agents[fold_label] = trained_fold_agents
@@ -174,7 +163,7 @@ class ExperimentManager:
                 'rewards': b_r,
                 'dones': b_d
             }
-            # Training FQI model for state-action pair value estimation BUG do not converge 有论文说收不收敛不一定有意义 (tree-based...)
+            # Training FQI model for state-action pair value estimation
             # Note: Approximate Model主要起个估计V(s)的作用：估计的Q(s,a)对a不敏感
             fqi_model, training_res = FQI_for_Q_estimate(transition_dict_for_train, args)
             save_pickle(fqi_model, MODELS_DIR + '/[{}]-RF-FQI.pkl'.format(fold_label))
@@ -332,14 +321,12 @@ class ExperimentManager:
                 print('\n----------------------------{} {}----------------------------\n'.format(model_name, fold_label))
                 data_path = self.dataset_path + '/{}/'.format(fold_label)
                 if not load_model:
-                    if model_name in ['HOPAS_wo_seq2seq']:
-                        agent = getattr(model_config, model_name)
-                        df_train = pd.read_csv(data_path + '/df_train.csv')
-                        agent = agent.fit(df_train, data_path, args=args)
-                        save_pickle(agent, MODELS_DIR + '/[{}]-{}.pkl'.format(fold_label, 'HOPAS_wo_seq2seq'))
+                    agent = getattr(model_config, model_name)
+                    df_train = pd.read_csv(data_path + '/df_train.csv')
+                    agent = agent.fit(df_train, data_path, args=args)
+                    save_pickle(agent, MODELS_DIR + '/[{}]-{}.pkl'.format(fold_label, 'HOPAS_wo_seq2seq'))
                 else:
-                    if model_name in ['HOPAS_wo_seq2seq']:
-                        agent = load_pickle(MODELS_DIR + '/[{}]-{}.pkl'.format(fold_label, 'HOPAS_wo_seq2seq'))
+                    agent = load_pickle(MODELS_DIR + '/[{}]-{}.pkl'.format(fold_label, 'HOPAS_wo_seq2seq'))
 
                 test_replay_buffer = torch.load(data_path + 'test_set_tuples_replay_buffer')
                 b_s, b_a, b_r, b_ns, b_d = test_replay_buffer.get_all_samples()
@@ -350,10 +337,8 @@ class ExperimentManager:
                     'rewards': b_r,
                     'dones': b_d
                 }
-                if model_name in ['HOPAS_wo_seq2seq']:
-                    df_test = pd.read_csv(data_path + '/df_test.csv')
-                    Q_estimate, agent_policy, _ = agent.predict(df_test, transition_dict_for_test)
-                pass
+                df_test = pd.read_csv(data_path + '/df_test.csv')
+                Q_estimate, agent_policy, _ = agent.predict(df_test, transition_dict_for_test)
                 fqi_model = load_pickle(MODELS_DIR + '/[{}]-RF-FQI.pkl'.format(fold_label))
                 evaluation_results[fold_label] = run_evaluate(agent_policy, transition_dict=transition_dict_for_test,
                                                               behavior_policy=behavior_policys[fold_label],
@@ -363,8 +348,7 @@ class ExperimentManager:
                                                               fold_label=fold_label)
             print_results(evaluation_results, model_name)
             all_agent_eval_res = load_pickle(RESULT_DIR + '/{}_test-eval_res.pkl'.format(args.outcome_label))
-            all_agent_eval_res['HOPAS_wo_seq2seq-A'] = evaluation_results
-            # all_agent_eval_res['HOPAS_wo_seq2seq-B'] = evaluation_results
+            all_agent_eval_res['HOPAS_wo_seq2seq'] = evaluation_results
             save_pickle(all_agent_eval_res, RESULT_DIR + '/{}_test-eval_res.pkl'.format(args.outcome_label))
 
 
@@ -373,7 +357,7 @@ def parse_args():
     #  Note: 'rewards_90d' for MIMIC-IV, 'rewards_icu' for eICU
     parser.add_argument('--outcome_label', type=str, default='rewards_90d')
     parser.add_argument('--seed', type=int, default=0)
-    # ----------------------------------------------------For TacVAE----------------------------------------------------
+    # -----------------------------------------------For Encoder-Decoder-----------------------------------------------
     parser.add_argument('--epochs', type=int, default=50)
     parser.add_argument('--static_dim', type=int, default=len(static_cols))
     parser.add_argument('--temporal_dim', type=int, default=len(temporal_cols))
@@ -428,7 +412,7 @@ if __name__ == '__main__':
     experiment.run_phenotypes_extraction(load_model=True)
     experiment.run_rl_data_prepare()
     experiment.run_policy_learning(Epochs=3)
-    experiment.train_eval_related_model(val_flag=False)
+    experiment.train_eval_related_model(val_flag=False)  # Get behavior policy
 
     save_pickle({}, RESULT_DIR + '/{}_test-eval_res.pkl'.format(args.outcome_label))
     experiment.run_rl_baseline(Epochs=1, load_model=False)

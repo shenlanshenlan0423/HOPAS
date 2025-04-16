@@ -63,12 +63,6 @@ def split_sepsis_cohort(reward_label):
     scaler = MinMaxScaler(feature_range=(-1, 1)).fit(df_scaled[temporal_cols])
     df_scaled[temporal_cols] = scaler.transform(df_scaled[temporal_cols])
 
-    # states, acts, lengths, outcomes = get_tensor_data(df_scaled['traj'].unique(), df_scaled, outcome_col=reward_label)
-    # torch.save((states, acts, lengths, outcomes), os.path.join(SAVE_DIR, 'all_patient_with_temporal_scaled'))
-    # df_scaled.to_csv(SAVE_DIR + 'all_patient_with_temporal_scaled.csv', index=False)
-    # df_scaled = df_scaled[df_scaled['step'] < horizon]
-    # df_des = df_scaled.describe()
-
     for fold_idx in range(folds):
         print('------------------fold {}------------------'.format(fold_idx + 1))
         fold_label = 'fold-{}'.format(fold_idx + 1)
@@ -118,6 +112,6 @@ if __name__ == '__main__':
     parser.add_argument('--C_4', type=float, default=0.05)
     parser.add_argument('--terminal_coeff', type=int, default=15)
     args = parser.parse_args()
-    rewards = ['rewards_icu']  # , 'rewards_icu', 'rewards_90d'
+    rewards = ['rewards_90d', 'rewards_icu']
     for reward_label in rewards:
         split_sepsis_cohort(reward_label=reward_label)

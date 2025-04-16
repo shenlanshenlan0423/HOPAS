@@ -33,13 +33,13 @@ class HOPAS_wo_seq2seq:
 
         patient_group_idx = list(gps.groups.keys())
         for subclass in range(args.n_clusters):
-            # patients_index = np.where(cluster_label == subclass)[0]
-            # sub_df = pd.concat([gps.get_group(patient_group_idx[id_]) for id_ in patients_index]).reset_index(drop=True)
-            # states, acts, lengths, outcomes = get_tensor_data(sub_df['traj'].unique(), sub_df, outcome_col='rewards_90d')
+            patients_index = np.where(cluster_label == subclass)[0]
+            sub_df = pd.concat([gps.get_group(patient_group_idx[id_]) for id_ in patients_index]).reset_index(drop=True)
+            states, acts, lengths, outcomes = get_tensor_data(sub_df['traj'].unique(), sub_df, outcome_col='rewards_90d')
             # torch.save((states, acts, lengths, outcomes), os.path.join(data_path, 'wo-seq2seq-class-{}-tuples'.format(subclass)))
-            # sub_train_replay_buffer = prepare_replay_buffer(tensor_tuple=(states, acts, lengths, outcomes), args=args)
+            sub_train_replay_buffer = prepare_replay_buffer(tensor_tuple=(states, acts, lengths, outcomes), args=args)
             # torch.save(sub_train_replay_buffer, data_path + 'wo-seq2seq-class-{}-train_replay_buffer'.format(subclass))
-            sub_train_replay_buffer = torch.load(data_path + 'wo-seq2seq-class-{}-train_replay_buffer'.format(subclass))
+            # sub_train_replay_buffer = torch.load(data_path + 'wo-seq2seq-class-{}-train_replay_buffer'.format(subclass))
 
             agent = DuelingDoubleDQN(state_dim=state_dim, action_dim=args.action_dim,
                                      hidden_dim=args.Hidden_size, gamma=args.gamma)

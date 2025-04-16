@@ -124,6 +124,7 @@ def main_table(pickle_file):
 if __name__ == '__main__':
     args = parse_args()
     set_seed(seed=args.seed)
+    # -----------------------------------------------Internal Validation------------------------------------------------
     run_other_benchmark(args)
     res_table = main_table(load_pickle(RESULT_DIR + '/{}_test-eval_res.pkl'.format(args.outcome_label)))
     res_table.to_excel(TABLE_DIR + '/{}_test_res.xlsx'.format(args.outcome_label), index=False)

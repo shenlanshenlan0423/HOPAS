@@ -54,7 +54,6 @@ def plot_surv_rates(surv_rates):
     coefficients = np.polyfit(X, y, 5)
     polynomial = np.poly1d(coefficients)
 
-    # **************************************从PHWDR的5 fold结果估计再计算统计量**************************************
     # MIMIC-IV
     mimic_wdr_res = load_pickle(RESULT_DIR + 'mimic_WDRs_for_ESR.pkl')
     WDR_res = np.array([mimic_wdr_res[i] for i in list(mimic_wdr_res.keys())])

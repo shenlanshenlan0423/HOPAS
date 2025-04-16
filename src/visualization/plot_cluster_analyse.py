@@ -19,8 +19,8 @@ linestyle_list = ['solid', 'dashed', 'dashdot']
 
 def plot_StratificationRes(X, cluster_model, all_data, cluster_0, cluster_1, cluster_2):
     fig = plt.figure(figsize=(14, 12), dpi=330)
-    # umap_model = umap.UMAP(random_state=42)
-    # save_pickle(umap_model.fit_transform(X), RESULT_DIR+'mapped_X_train.pkl')
+    umap_model = umap.UMAP(random_state=42)
+    save_pickle(umap_model.fit_transform(X), RESULT_DIR+'mapped_X_train.pkl')
 
     plot_elbow(fig, 1)
     plot_principal(fig, load_pickle(RESULT_DIR+'mapped_X_train.pkl'), cluster_model.predict(X), 2)
