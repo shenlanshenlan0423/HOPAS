@@ -1,0 +1,13 @@
+scipy~=1.10.0
+scikit-learn~=1.2.1
+pandas~=1.5.3
+dill~=0.3.6
+joblib~=1.1.1
+numpy~=1.23.5
+Markdown~=3.4.1
+matplotlib~=3.7.0
+seaborn~=0.12.2
+pathlib~=1.0.1
+torch~=2.0.1
+tqdm~=4.64.1
+xgboost~=2.0.0
