@@ -44,19 +44,3 @@ class DuelingDoubleDQN(nn.Module):
             self.target_q_net.load_state_dict(self.q_net.state_dict())
         self.count += 1
         return q_values, q_targets.unsqueeze(1)
-
-
-def testing_case_study(agent, test_data, args):
-    test_replay_buffer = prepare_replay_buffer(tensor_tuple=test_data, args=args)
-    b_s, b_a, b_r, b_ns, b_d = test_replay_buffer.get_all_samples()
-    transition_dict = {
-        'states': b_s,
-        'actions': b_a,
-        'next_states': b_ns,
-        'rewards': b_r,
-        'dones': b_d
-    }
-    states = torch.cat(transition_dict['states'], dim=0)
-    Q_estimate, _, agent_policy = agent.take_action(states)
-    agent_policy = agent_policy.detach().cpu().numpy()
-    return Q_estimate, agent_policy

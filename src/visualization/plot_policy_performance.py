@@ -2,7 +2,7 @@
 """
 @Time ： 2025/3/30 20:22
 @Auth ： Hongwei
-@File ：plot_for_nature_portfolio.py
+@File ：plot_policy_performance.py
 @IDE ：PyCharm
 """
 

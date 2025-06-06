@@ -19,7 +19,6 @@ class CQL_DQN(nn.Module):
         self.gamma = args.gamma
         self.alpha = 0.05  # Parameter for CQL regularization
 
-        # CQL 无需使用dueling结构
         self.q_net = Qnet(state_dim, hidden_dim, action_dim).to(device)
         self.target_q_net = Qnet(state_dim, hidden_dim, action_dim).to(device)
         self.target_q_net.load_state_dict(self.q_net.state_dict())

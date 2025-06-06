@@ -20,30 +20,24 @@ class ExperimentManager:
     def __init__(self, dataset_path):
         self.dataset_path = dataset_path
 
-    def run_train_encoder(self, load_model):
-        losses = {}
+    def run_train_encoder(self):
         for fold_idx in range(folds):
             fold_label = 'fold-{}'.format(fold_idx + 1)
             print('\n----------------------------{}----------------------------\n'.format(fold_label))
             data_path = self.dataset_path + '/{}/'.format(fold_label)
-            if not load_model:
-                train_set = prepare_tuples(torch.load(data_path + '/train_set_tuples'))
-                val_set = prepare_tuples(torch.load(data_path + '/val_set_tuples'))
-                train_loader = DataLoader(dataset=train_set, batch_size=args.batch_size, shuffle=True)
-                val_loader = DataLoader(dataset=val_set, batch_size=args.batch_size, shuffle=True)
 
-            if not load_model:
-                enc = AttentionEncoder(args.static_dim, args.temporal_dim, args.d, args.embedding_dim,
-                                       args.hidden_size, args.num_layers, args.dropout_rate).to(device)
-                dec = AttentionDecoder(args.temporal_dim, args.d, args.embedding_dim, args.latent_dim,
-                                       args.hidden_size, args.num_layers, args.dropout_rate).to(device)
-                model = Seq2Seq(encoder=enc, decoder=dec, static_dim=args.static_dim,
-                                hidden_size=args.hidden_size, latent_dim=args.latent_dim).to(device)
-                loss = train(model, train_loader=train_loader, valid_loader=val_loader,
-                             model_name=args.model_name, fold_label=fold_label, args=args)
-                losses[fold_label] = loss
-        if not load_model:
-            save_pickle(losses, RESULT_DIR + '/{}_losses.pkl'.format(args.model_name))
+            train_set = prepare_tuples(torch.load(data_path + '/train_set_tuples'))
+            val_set = prepare_tuples(torch.load(data_path + '/val_set_tuples'))
+            train_loader = DataLoader(dataset=train_set, batch_size=args.batch_size, shuffle=True)
+            val_loader = DataLoader(dataset=val_set, batch_size=args.batch_size, shuffle=True)
+
+            enc = AttentionEncoder(args.static_dim, args.temporal_dim, args.d, args.embedding_dim,
+                                   args.hidden_size, args.num_layers, args.dropout_rate).to(device)
+            dec = AttentionDecoder(args.temporal_dim, args.d, args.embedding_dim, args.latent_dim,
+                                   args.hidden_size, args.num_layers, args.dropout_rate).to(device)
+            model = Seq2Seq(encoder=enc, decoder=dec, static_dim=args.static_dim,
+                            hidden_size=args.hidden_size, latent_dim=args.latent_dim).to(device)
+            train(model, train_loader=train_loader, valid_loader=val_loader, model_name=args.model_name, fold_label=fold_label, args=args)
 
     def run_phenotypes_extraction(self, load_model):
         trained_cluster_models, cluster_models_eval_res = {}, {}
@@ -164,7 +158,6 @@ class ExperimentManager:
                 'dones': b_d
             }
             # Training FQI model for state-action pair value estimation
-            # Note: Approximate Model主要起个估计V(s)的作用：估计的Q(s,a)对a不敏感
             fqi_model, training_res = FQI_for_Q_estimate(transition_dict_for_train, args)
             save_pickle(fqi_model, MODELS_DIR + '/[{}]-RF-FQI.pkl'.format(fold_label))
             fqi_training_res[fold_label] = training_res
@@ -273,12 +266,12 @@ class ExperimentManager:
             fold_label = 'fold-{}'.format(fold_idx + 1)
             print('\n----------------------------{}----------------------------\n'.format(fold_label))
             data_path = self.dataset_path + '/{}/'.format(fold_label)
-            if model_name == 'HOPAS-A':
+            if model_name == 'HOPAS-A':  # Single Well-matched Expert Decision-making.
                 model = HOPAS_A(data_path=data_path,
                                 encoder=torch.load(MODELS_DIR + '/{}-{}.pt'.format(args.model_name, fold_label)),
                                 cluster_model=trained_cluster_models[fold_label],
                                 agent_pool=trained_agents[fold_label], args=args)
-            if model_name == 'HOPAS-B':
+            if model_name == 'HOPAS-B':  # Multi-experts Probabilistic Consensus Aggregation.
                 model = HOPAS_B(data_path=data_path,
                                 encoder=torch.load(MODELS_DIR + '/{}-{}.pt'.format(args.model_name, fold_label)),
                                 cluster_model=trained_cluster_models[fold_label],
@@ -408,11 +401,11 @@ if __name__ == '__main__':
     # -----------------------------------------------Internal Validation------------------------------------------------
     dataset_path = DATA_DIR + '/{}/'.format(args.outcome_label)
     experiment = ExperimentManager(dataset_path=dataset_path)
-    experiment.run_train_encoder(load_model=True)
+    experiment.run_train_encoder()
     experiment.run_phenotypes_extraction(load_model=True)
     experiment.run_rl_data_prepare()
     experiment.run_policy_learning(Epochs=3)
-    experiment.train_eval_related_model(val_flag=False)  # Get behavior policy
+    experiment.train_eval_related_model(val_flag=False)
 
     save_pickle({}, RESULT_DIR + '/{}_test-eval_res.pkl'.format(args.outcome_label))
     experiment.run_rl_baseline(Epochs=1, load_model=False)
@@ -424,7 +417,7 @@ if __name__ == '__main__':
     args.outcome_label = 'rewards_icu'
     dataset_path = DATA_DIR + '/{}/'.format(args.outcome_label)
     experiment = ExperimentManager(dataset_path=dataset_path)
-    experiment.train_eval_related_model(val_flag=False)  # Get behavior policy
+    experiment.train_eval_related_model(val_flag=False)
 
     save_pickle({}, RESULT_DIR + '/{}_test-eval_res.pkl'.format(args.outcome_label))
     experiment.run_rl_baseline(Epochs=1, load_model=True)

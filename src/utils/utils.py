@@ -38,13 +38,10 @@ def prepare_tuples(tensor_tuple):
     for patient_idx in range(len(Sepsis_data)):
         states, actions, lengths, reward, _ = Sepsis_data[patient_idx]
         next_states = torch.cat((states[1:], torch.zeros((1, states.shape[1])).to(device)), dim=0)
-        # Terminal state向自己转移
         next_states[lengths - 1] = states[lengths - 1]
         outcomes = torch.zeros_like(reward).to(device)
-        # outcomes[:lengths] = torch.zeros_like(outcomes[:lengths]) if reward[lengths - 1] == 1 else torch.ones_like(outcomes[:lengths])
         outcomes[lengths - 1] = 0 if reward[lengths - 1] == 1 else 1  # 在最后一个时刻，患者产生生存或死亡的结局
-        # outcomes = torch.tensor([0]).to(device) if reward[lengths - 1] == 1 else torch.tensor([1]).to(device)
-        s_a_ns_len_outcome.append((states, actions, next_states, lengths.unsqueeze(0), outcomes))  # HACK
+        s_a_ns_len_outcome.append((states, actions, next_states, lengths.unsqueeze(0), outcomes))
     return s_a_ns_len_outcome
 
 
@@ -59,14 +56,14 @@ def Physiological_distance_kernel(X_arr):
         'MBP', 'SBP', 'DBP', 'HR', 'Temperature', 'RR', 'SpO2',
         # Lab Test
         'Hb', 'Platelets', 'WBC', 'Hematocrit', 'RDW',  # 'MCH', 'MCHC', 'MCV',
-        'PTT', 'INR', 'PH', 'PaO2', 'PaCO2', 'Lactate', 'BaseExcess',  # 'PT',
+        'aPTT', 'INR', 'PH', 'PaO2', 'PaCO2', 'Lactate', 'BaseExcess',  # 'PT',
         'HCO3', 'Chloride', 'Sodium', 'Potassium', 'Glucose',  # 'Calcium', 'FiO2',
         'AnionGap', 'BUN', 'Creatinine',  # 'Albumin',
         # Treatment administration
         'Total Input', 'Total Output', 'Vasopressor', 'Ventilation',
         'SOFA'
     ]
-    Feature index: {Platelets: 12, RDW: 15, PTT: 16, INR: 17, Lactate: 21, SOFA: 35}
+    Feature index: {Platelets: 12, RDW: 15, aPTT: 16, INR: 17, Lactate: 21, SOFA: 35}
     """
     interested_col = [12, 15, 16, 17, 21, 35]
     X_arr[:, interested_col] = X_arr[:, interested_col] * np.sqrt(2)

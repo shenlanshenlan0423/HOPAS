@@ -19,7 +19,7 @@ class TimeEmbedding:
         self.time_embedding = torch.stack(time_embedding).to(device)
 
 
-class Attention(nn.Module):  # TODO CHECK dot, concat and concat2
+class Attention(nn.Module):
     def __init__(self, method, hidden_size):
         super().__init__()
         self.method = method
@@ -301,7 +301,7 @@ def train(model, train_loader, valid_loader, model_name, fold_label, args):
                 'Model Save': '{}'.format(save_flag)
             })
             pbar.update(1)
-    return {'train loss': train_losses, 'val loss': val_losses}
+    # return {'train loss': train_losses, 'val loss': val_losses}
 
 
 def test(model, test_loader):
